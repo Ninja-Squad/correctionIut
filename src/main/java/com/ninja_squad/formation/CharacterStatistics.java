@@ -17,6 +17,10 @@ public class CharacterStatistics {
         return totalNumberOfCharacters;
     }
 
+    public int getNumberOfTweets() {
+        return numberOfTweets;
+    }
+
     public int getAverageNumberOfCharacters() {
         if (totalNumberOfCharacters == 0) {
             return 0;

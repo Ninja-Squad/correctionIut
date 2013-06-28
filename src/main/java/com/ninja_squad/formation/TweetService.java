@@ -1,26 +1,26 @@
 package com.ninja_squad.formation;
 
 import com.google.common.base.Function;
-import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Multiset;
-import com.google.common.collect.Ordering;
 import org.joda.time.DateTime;
 import org.joda.time.LocalDate;
 import org.joda.time.LocalTime;
 
-import java.util.Comparator;
+import java.util.Comparators;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 /**
  * The tweet service of our fictive application. It uses the DAO.
@@ -33,74 +33,51 @@ public class TweetService {
         this.dao = dao;
     }
 
-    private static final Function<Tweet, String> TWEET_TO_SENDER = new Function<Tweet, String>() {
-        @Override
-        public String apply(Tweet input) {
-            return input.getSender();
-        }
-    };
-
     /**
      * extrait les senders des tweets, dans le même ordre que les tweets
      */
     public List<String> extractSenders() {
-        return FluentIterable.from(getTweetsFromLast30Days())
-                             .transform(TWEET_TO_SENDER)
-                             .toList();
+        return getTweetsFromLast30Days().stream()
+                                        .map(Tweet::getSender)
+                                        .collect(Collectors.toList());
     }
 
     /**
      * extrait les senders des tweets, dans le même ordre que les tweets, mais sans duplicata
      */
     public Set<String> extractSendersWithoutDuplication() {
-        return FluentIterable.from(getTweetsFromLast30Days())
-                             .transform(TWEET_TO_SENDER)
-                             .toSet();
+        return getTweetsFromLast30Days().stream()
+                                        .map(Tweet::getSender)
+                                        .collect(Collectors.toCollection(() -> new LinkedHashSet<>()));
     }
 
     /**
      * extrait les senders des tweets, sans duplicata, et triés par ordre alphabétique
      */
     public SortedSet<String> extractSendersInAlphabeticalOrder() {
-        return FluentIterable.from(getTweetsFromLast30Days())
-                             .transform(TWEET_TO_SENDER)
-                             .toSortedSet(Ordering.natural());
+        return getTweetsFromLast30Days().stream()
+                                        .map(Tweet::getSender)
+                                        .collect(Collectors.toCollection(() -> new TreeSet<>()));
     }
 
 
     /**
      * extrait les tweets contenant un hashtag donné, en conservant l'ordre
      */
-    public List<Tweet> extractTweetsWithHashTag(final String hashTag) {
-        return FluentIterable.from(getTweetsFromLast30Days())
-                             .filter(containsHashTagPredicate(hashTag))
-                             .toList();
-    }
-
-    private Predicate<Tweet> containsHashTagPredicate(final String hashTag) {
-        return new Predicate<Tweet>() {
-            @Override
-            public boolean apply(Tweet input) {
-                return input.containsHashTag(hashTag);
-            }
-        };
+    public List<Tweet> extractTweetsWithHashTag(String hashTag) {
+        return getTweetsFromLast30Days().stream()
+                                        .filter(t -> t.containsHashTag(hashTag))
+                                        .collect(Collectors.toList());
     }
 
     /**
      * extrait les tweets contenant un hashtag donné, triés par sender, puis par date
      */
     public List<Tweet> extractTweetsWithHashTagSortedBySenderAndDate(String hashTag) {
-        return FluentIterable.from(getTweetsFromLast30Days())
-                             .filter(containsHashTagPredicate(hashTag))
-                             .toSortedList(new Comparator<Tweet>() {
-                                 @Override
-                                 public int compare(Tweet o1, Tweet o2) {
-                                     return ComparisonChain.start()
-                                                           .compare(o1.getSender(), o2.getSender())
-                                                           .compare(o1.getDate(), o2.getDate())
-                                                           .result();
-                                 }
-                             });
+        return getTweetsFromLast30Days().stream()
+                                        .filter(t -> t.containsHashTag(hashTag))
+                                        .sorted(Comparators.<Tweet, String>comparing(Tweet::getSender).<Tweet, DateTime>thenComparing(Tweet::getDate))
+                                        .collect(Collectors.toList());
     }
 
 
@@ -108,32 +85,16 @@ public class TweetService {
      * extrait l'ensemble des hashTags des tweets
      */
     public Set<String> extractHashTags() {
-        return FluentIterable.from(getTweetsFromLast30Days())
-                             .transformAndConcat(new Function<Tweet, Iterable<String>>() {
-                                 @Override
-                                 public Iterable<String> apply(Tweet input) {
-                                     return input.getHashTags();
-                                 }
-                             })
-                             .toSet();
+        return getTweetsFromLast30Days().stream()
+                                        .flatMap(t -> t.getHashTags().stream())
+                                        .collect(Collectors.toSet());
     }
 
     /**
      * extrait les tweets et les range par sender
      */
     public ListMultimap<String, Tweet> extractTweetsBySender() {
-        return Multimaps.index(getTweetsFromLast30Days(), new Function<Tweet, String>() {
-            @Override
-            public String apply(Tweet tweet) {
-                return tweet.getSender();
-            }
-        });
-        // ou:
-        // ListMultimap<String, Tweet> result = ArrayListMultimap.create();
-        // for (Tweet tweet : getTweetsFromLast30Days()) {
-        //     result.put(tweet.getSender(), tweet);
-        // }
-        // return result;
+        return Multimaps.index(getTweetsFromLast30Days(), Tweet::getSender);
     }
 
     /**
@@ -141,24 +102,19 @@ public class TweetService {
      * contiennent pas
      */
     public Map<Boolean, List<Tweet>> splitTweetsForHashTag(String hashTag) {
-        Map<Boolean, List<Tweet>> result = Maps.newHashMap();
-        List<Tweet> tweetsFromLast30Days = getTweetsFromLast30Days();
-        result.put(true, FluentIterable.from(tweetsFromLast30Days).filter(containsHashTagPredicate(hashTag)).toList());
-        result.put(false, FluentIterable.from(tweetsFromLast30Days).filter(Predicates.not(containsHashTagPredicate(hashTag))).toList());
-        return result;
+        return getTweetsFromLast30Days().stream()
+                                        .collect(Collectors.partitioningBy(t -> t.containsHashTag(hashTag)));
     }
 
     /**
      * calcule le nombre total de caractères des tweets, ainsi que le nombre de caractères par tweet
      */
     public CharacterStatistics computeCharacterStatistics() {
-        int tweetCount = 0;
-        int characterCount = 0;
-        for (Tweet tweet : getTweetsFromLast30Days()) {
-            tweetCount++;
-            characterCount += tweet.getText().length();
-        }
-        return new CharacterStatistics(characterCount, tweetCount);
+        return getTweetsFromLast30Days().parallelStream()
+                                        .map(t -> new CharacterStatistics(t.getText().length(), 1))
+                                        .reduce(new CharacterStatistics(0, 0),
+                                                (c1, c2) -> new CharacterStatistics(c1.getTotalNumberOfCharacters() + c2.getTotalNumberOfCharacters(),
+                                                                                    c1.getNumberOfTweets() + c2.getNumberOfTweets()));
     }
 
     /**

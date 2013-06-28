@@ -18,17 +18,17 @@ import static org.fest.assertions.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 /**
- * Unit tests for TweetService
+ * Unit tests for TweetServiceImpl
  * @author JB
  */
-public class TweetServiceTest {
+public class TweetServiceImplTest {
     private TweetDAO mockTweetDAO;
-    private TweetService service;
+    private TweetServiceImpl service;
 
     @Before
     public void prepare() {
         mockTweetDAO = mock(TweetDAO.class);
-        service = new TweetService(mockTweetDAO);
+        service = new TweetServiceImpl(mockTweetDAO);
 
         when(mockTweetDAO.findByDates(any(DateTime.class), any(DateTime.class))).thenReturn(Tweet.TWEETS);
     }

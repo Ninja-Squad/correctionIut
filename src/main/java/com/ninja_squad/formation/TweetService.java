@@ -1,10 +1,12 @@
 package com.ninja_squad.formation;
 
+import org.joda.time.DateTime;
+import org.joda.time.LocalDate;
+import org.joda.time.LocalTime;
+
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -159,11 +161,11 @@ public class TweetService {
      * @param begin the begin date, inclusive
      * @param end the end date, exclusive
      */
-    public void computeAndSaveDailyStats(Date begin, Date end) {
-        List<Tweet> tweets = dao.findByDates(begin, end);
+    public void computeAndSaveDailyStats(LocalDate begin, LocalDate end) {
+        List<Tweet> tweets = dao.findByDates(begin.toDateTime(LocalTime.MIDNIGHT), end.toDateTime(LocalTime.MIDNIGHT));
         Map<DayAndSender, Integer> tweetsSentByDayAndSender = new HashMap<>();
         for (Tweet tweet : tweets) {
-            DayAndSender key = new DayAndSender(getDay(tweet.getDate()), tweet.getSender());
+            DayAndSender key = new DayAndSender(tweet.getDate().toLocalDate(), tweet.getSender());
             Integer tweetsSent = tweetsSentByDayAndSender.get(key);
             if (tweetsSent == null) {
                 tweetsSent = 1;
@@ -178,47 +180,24 @@ public class TweetService {
         }
     }
 
-    /**
-     * Returns the given date at 00:00:00
-     */
-    private Date getDay(Date date) {
-        Calendar day = Calendar.getInstance();
-        day.setTime(date);
-        day.set(Calendar.HOUR_OF_DAY, 0);
-        day.set(Calendar.MINUTE, 0);
-        day.set(Calendar.SECOND, 0);
-        day.set(Calendar.MILLISECOND, 0);
-        return day.getTime();
-    }
-
     private List<Tweet> getTweetsFromLast30Days() {
-        Calendar today = Calendar.getInstance();
-        today.set(Calendar.HOUR_OF_DAY, 0);
-        today.set(Calendar.MINUTE, 0);
-        today.set(Calendar.SECOND, 0);
-        today.set(Calendar.MILLISECOND, 0);
+        DateTime today = DateTime.now().withTimeAtStartOfDay();
+        DateTime todayMinus30Days = today.minusDays(30);
+        DateTime tomorrow = today.plusDays(1);
 
-        Calendar todayMinus30Days = Calendar.getInstance();
-        todayMinus30Days.setTimeInMillis(today.getTimeInMillis());
-        todayMinus30Days.add(Calendar.DATE, -30);
-
-        Calendar tomorrow = Calendar.getInstance();
-        tomorrow.setTimeInMillis(today.getTimeInMillis());
-        tomorrow.add(Calendar.DATE, 1);
-
-        return dao.findByDates(todayMinus30Days.getTime(), tomorrow.getTime());
+        return dao.findByDates(todayMinus30Days, tomorrow);
     }
 
     private static final class DayAndSender {
-        private final Date day;
+        private final LocalDate day;
         private final String sender;
 
-        public DayAndSender(Date day, String sender) {
+        public DayAndSender(LocalDate day, String sender) {
             this.day = day;
             this.sender = sender;
         }
 
-        public Date getDay() {
+        public LocalDate getDay() {
             return day;
         }
 

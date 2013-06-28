@@ -1,6 +1,7 @@
 package com.ninja_squad.formation;
 
-import java.util.Date;
+import org.joda.time.DateTime;
+
 import java.util.List;
 
 /**
@@ -13,7 +14,7 @@ public class TweetDAO {
      * @param begin the begin date, inclusive
      * @param end the end date, exclusive
      */
-    public List<Tweet> findByDates(Date begin, Date end) {
+    public List<Tweet> findByDates(DateTime begin, DateTime end) {
         throw new UnsupportedOperationException("not implemented yet");
     }
 

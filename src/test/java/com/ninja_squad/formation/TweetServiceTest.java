@@ -1,15 +1,14 @@
 package com.ninja_squad.formation;
 
+import org.joda.time.DateTime;
+import org.joda.time.LocalDate;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -29,7 +28,7 @@ public class TweetServiceTest {
         mockTweetDAO = mock(TweetDAO.class);
         service = new TweetService(mockTweetDAO);
 
-        when(mockTweetDAO.findByDates(any(Date.class), any(Date.class))).thenReturn(Tweet.TWEETS);
+        when(mockTweetDAO.findByDates(any(DateTime.class), any(DateTime.class))).thenReturn(Tweet.TWEETS);
     }
 
     @Test
@@ -92,10 +91,7 @@ public class TweetServiceTest {
 
     @Test
     public void testComputeAndSaveDailyStats() throws Exception {
-        DateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
-        Date begin = dateFormat.parse("12/01/2012");
-        Date end = dateFormat.parse("16/01/2012");
-        service.computeAndSaveDailyStats(begin, end);
+        service.computeAndSaveDailyStats(new LocalDate("2012-01-12"), new LocalDate("2012-02-16"));
 
         ArgumentCaptor<DailyStats> captor = ArgumentCaptor.forClass(DailyStats.class);
         verify(mockTweetDAO, times(6)).saveDailyStats(captor.capture());
@@ -112,12 +108,12 @@ public class TweetServiceTest {
             }
         });
 
-        assertThat(extractProperty("day").from(savedDailyStats)).containsExactly(dateFormat.parse("12/01/2012"),
-                                                                                 dateFormat.parse("12/01/2012"),
-                                                                                 dateFormat.parse("12/01/2012"),
-                                                                                 dateFormat.parse("13/01/2012"),
-                                                                                 dateFormat.parse("14/01/2012"),
-                                                                                 dateFormat.parse("15/01/2012"));
+        assertThat(extractProperty("day").from(savedDailyStats)).containsExactly(new LocalDate("2012-01-12"),
+                                                                                 new LocalDate("2012-01-12"),
+                                                                                 new LocalDate("2012-01-12"),
+                                                                                 new LocalDate("2012-01-13"),
+                                                                                 new LocalDate("2012-01-14"),
+                                                                                 new LocalDate("2012-01-15"));
         assertThat(extractProperty("sender").from(savedDailyStats)).containsExactly("@cedric_exbrayat",
                                                                                     "@clacote",
                                                                                     "@jbnizet",

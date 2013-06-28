@@ -11,7 +11,7 @@ public class TweetDAO {
     /**
      * Returns the tweets sent between the given dates, from the database
      * @param begin the begin date, inclusive
-     * @param end the end date, inclusive
+     * @param end the end date, exclusive
      */
     public List<Tweet> findByDates(Date begin, Date end) {
         throw new UnsupportedOperationException("not implemented yet");

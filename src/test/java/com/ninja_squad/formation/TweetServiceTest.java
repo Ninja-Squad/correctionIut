@@ -1,5 +1,7 @@
 package com.ninja_squad.formation;
 
+import com.google.common.collect.ComparisonChain;
+import com.google.common.collect.ListMultimap;
 import org.joda.time.DateTime;
 import org.joda.time.LocalDate;
 import org.junit.Before;
@@ -69,8 +71,8 @@ public class TweetServiceTest {
 
     @Test
     public void testExtractTweetsBySender() throws Exception {
-        Map<String, List<Tweet>> result = service.extractTweetsBySender();
-        assertThat(result).hasSize(5);
+        ListMultimap<String, Tweet> result = service.extractTweetsBySender();
+        assertThat(result.asMap()).hasSize(5);
         assertThat(result.keySet()).containsOnly("@agnes_crepet", "@brian_goetz", "@cedric_exbrayat", "@clacote", "@jbnizet");
         assertThat(extractProperty("id").from(result.get("@jbnizet"))).containsExactly(3L, 6L);
     }
@@ -100,11 +102,10 @@ public class TweetServiceTest {
         Collections.sort(savedDailyStats, new Comparator<DailyStats>() {
             @Override
             public int compare(DailyStats o1, DailyStats o2) {
-                int result = o1.getDay().compareTo(o2.getDay());
-                if (result == 0) {
-                    result = o1.getSender().compareTo(o2.getSender());
-                }
-                return result;
+                return ComparisonChain.start()
+                                      .compare(o1.getDay(), o2.getDay())
+                                      .compare(o1.getSender(), o2.getSender())
+                                      .result();
             }
         });
 
